@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Focus Dashboard</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root {
+  --bg: #0d1a26;
+  --card: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.1);
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.5);
+  --dim: rgba(255,255,255,0.25);
+  --green: #4ade80;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --orange: #fb923c;
+  --yellow: #fbbf24;
+  --red: #f87171;
+}
+
+html, body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(160deg, #1e3045 0%, #0d1a26 50%, #162030 100%);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; padding: 16px 16px 100px; animation: fadeIn .2s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── TOPBAR ── */
+.topbar { display:flex; justify-content:space-between; align-items:flex-start; padding:16px 0 12px; }
+.topbar-date { font-size:13px; font-weight:700; letter-spacing:.08em; }
+.topbar-day { font-size:11px; color:var(--muted); letter-spacing:.06em; margin-top:2px; display:flex; align-items:center; gap:5px; }
+.topbar-day::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); display:inline-block; }
+.focus-btn { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:20px; padding:7px 14px; font-size:11px; font-weight:600; color:var(--text); letter-spacing:.06em; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.focus-btn::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); }
+
+/* ── CARDS ── */
+.card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:16px; backdrop-filter:blur(20px); margin-bottom:14px; }
+.card-title { font-size:10px; font-weight:700; letter-spacing:.09em; color:var(--muted); margin-bottom:10px; }
+
+/* ── HERO GOAL CARD ── */
+.hero-card { position:relative; overflow:hidden; min-height:230px; }
+.hero-emoji { position:absolute; right:12px; top:10px; font-size:80px; filter:drop-shadow(0 8px 20px rgba(0,0,0,0.4)); user-select:none; line-height:1; }
+.hero-label { font-size:10px; font-weight:600; letter-spacing:.1em; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:4px; }
+.hero-title { font-size:30px; font-weight:800; line-height:1.05; margin:6px 0 3px; max-width:55%; }
+.hero-sub { font-size:12px; color:var(--muted); margin-bottom:14px; max-width:55%; }
+.prog-label { font-size:10px; font-weight:600; letter-spacing:.08em; color:var(--muted); }
+.prog-pct { font-size:38px; font-weight:800; line-height:1; }
+.prog-amount { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.prog-bar { width:100%; height:6px; background:rgba(255,255,255,0.15); border-radius:3px; overflow:hidden; margin-bottom:14px; }
+.prog-fill { height:100%; background:linear-gradient(90deg,rgba(255,255,255,0.6),rgba(255,255,255,0.95)); border-radius:3px; transition:width .8s ease; }
+.hero-meta { display:flex; gap:20px; }
+.meta-item {}
+.meta-label { font-size:10px; font-weight:600; letter-spacing:.07em; color:var(--muted); margin-bottom:2px; }
+.meta-val { font-size:13px; font-weight:700; }
+
+/* ── GRID ROW ── */
+.row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+
+/* ── WEEKLY CHART ── */
+.weekly-amount { font-size:24px; font-weight:800; margin-bottom:2px; }
+.weekly-change { font-size:11px; color:var(--green); margin-bottom:12px; }
+.chart-wrap svg { width:100%; height:55px; overflow:visible; }
+.day-labels { display:flex; justify-content:space-between; margin-top:5px; }
+.day-label { font-size:9px; color:var(--muted); font-weight:600; }
+.day-label.active { color:#fff; background:rgba(255,255,255,0.12); border-radius:8px; padding:1px 4px; }
+
+/* ── STATS GRID ── */
+.stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.stat-item { background:rgba(255,255,255,0.05); border-radius:12px; padding:10px; }
+.stat-icon { font-size:16px; margin-bottom:3px; }
+.stat-lbl { font-size:9px; color:var(--muted); font-weight:600; letter-spacing:.06em; margin-bottom:2px; }
+.stat-val { font-size:14px; font-weight:800; line-height:1.1; }
+.stat-sub { font-size:9px; color:var(--muted); margin-top:1px; }
+
+/* ── HABITS ── */
+.habit-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; cursor:pointer; }
+.habit-icon { font-size:14px; width:20px; text-align:center; }
+.habit-name { font-size:10px; font-weight:500; width:50px; flex-shrink:0; }
+.habit-bar-wrap { flex:1; height:5px; background:rgba(255,255,255,0.12); border-radius:3px; overflow:hidden; }
+.habit-bar { height:100%; border-radius:3px; transition:width .4s ease; }
+.habit-count { font-size:10px; color:var(--muted); width:22px; text-align:right; flex-shrink:0; }
+.habit-check { font-size:13px; width:18px; text-align:center; }
+
+/* ── QUOTE ── */
+.quote-card {
+  background:linear-gradient(135deg, rgba(251,146,60,0.15) 0%, rgba(13,26,38,0.9) 60%);
+  position:relative; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;
+}
+.quote-fig { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:32px; opacity:.8; }
+.quote-text { font-size:13px; font-weight:800; line-height:1.3; margin-bottom:5px; }
+.quote-sub { font-size:9px; color:var(--muted); }
+
+/* ── MILESTONES ── */
+.milestones-row { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; }
+.milestones-row::-webkit-scrollbar { display:none; }
+.milestone-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:12px; min-width:86px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center; cursor:pointer; transition:border-color .2s; }
+.milestone-card.active { border-color:var(--green); background:rgba(74,222,128,0.08); }
+.milestone-card .m-icon { font-size:22px; }
+.milestone-card .m-price { font-size:10px; font-weight:700; }
+.milestone-card .m-pct { font-size:11px; font-weight:800; }
+.milestone-card .m-name { font-size:9px; color:var(--muted); }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav { position:fixed; bottom:0; left:0; right:0; background:rgba(10,20,30,0.97); border-top:1px solid rgba(255,255,255,0.08); backdrop-filter:blur(20px); display:flex; justify-content:space-around; padding:10px 6px 20px; z-index:100; }
+.nav-item { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; font-size:9px; color:var(--muted); font-weight:600; letter-spacing:.02em; padding:4px 10px; border-radius:12px; transition:all .2s; }
+.nav-item.active { color:#fff; background:rgba(255,255,255,0.1); }
+.nav-icon { font-size:18px; }
+
+/* ── GOALS SCREEN ── */
+.goals-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+.goals-header h2 { font-size:20px; font-weight:800; }
+.btn-add { background:var(--green); color:#000; border:none; border-radius:12px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
+.btn-sm { background:rgba(255,255,255,0.1); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:6px 12px; font-size:11px; font-weight:600; cursor:pointer; margin-right:6px; }
+.btn-danger { background:rgba(248,113,113,0.15); border:1px solid rgba(248,113,113,0.3); color:var(--red); border-radius:10px; padding:6px 12px; font-size:11px; font-weight:600; cursor:pointer; }
+.goal-card { margin-bottom:12px; }
+.goal-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+.goal-info {}
+.goal-emoji { font-size:28px; }
+.goal-name { font-size:16px; font-weight:700; }
+.goal-target { font-size:11px; color:var(--muted); }
+.goal-pct-big { font-size:28px; font-weight:800; }
+.goal-prog-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.goal-prog-row .prog-bar { margin:0; flex:1; }
+.goal-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.input-row { display:flex; gap:8px; margin-bottom:8px; }
+input[type=text], input[type=number] {
+  background:rgba(255,255,255,0.07); border:1px solid var(--border); border-radius:10px;
+  color:#fff; padding:8px 12px; font-size:13px; font-family:'Inter',sans-serif;
+  outline:none; width:100%;
+}
+input[type=text]::placeholder, input[type=number]::placeholder { color:var(--dim); }
+input[type=text]:focus, input[type=number]:focus { border-color:rgba(255,255,255,0.3); }
+
+/* ── MODAL ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; align-items:flex-end; }
+.modal-overlay.open { display:flex; }
+.modal { background:#1a2a3a; border:1px solid var(--border); border-radius:24px 24px 0 0; padding:24px 20px 40px; width:100%; max-height:90vh; overflow-y:auto; animation:slideUp .25s ease; }
+@keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+.modal h3 { font-size:18px; font-weight:800; margin-bottom:16px; }
+.modal label { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:.06em; display:block; margin-bottom:5px; margin-top:12px; }
+.modal-btns { display:flex; gap:10px; margin-top:20px; }
+.btn-primary { background:var(--green); color:#000; border:none; border-radius:12px; padding:12px; font-size:14px; font-weight:700; cursor:pointer; flex:1; }
+.btn-cancel { background:rgba(255,255,255,0.08); color:#fff; border:1px solid var(--border); border-radius:12px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; flex:1; }
+
+/* ── FINANCE SCREEN ── */
+.finance-total { font-size:36px; font-weight:800; margin-bottom:4px; }
+.finance-sub { font-size:12px; color:var(--muted); margin-bottom:16px; }
+.tx-item { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+.tx-left { display:flex; align-items:center; gap:10px; }
+.tx-icon { font-size:22px; }
+.tx-name { font-size:13px; font-weight:600; }
+.tx-date { font-size:11px; color:var(--muted); }
+.tx-amount { font-size:14px; font-weight:700; }
+.tx-amount.income { color:var(--green); }
+.tx-amount.expense { color:var(--red); }
+.category-tags { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.tag { background:rgba(255,255,255,0.08); border:1px solid var(--border); border-radius:20px; padding:5px 12px; font-size:11px; font-weight:600; cursor:pointer; }
+.tag.active { background:rgba(74,222,128,0.15); border-color:var(--green); color:var(--green); }
+
+/* ── PROFILE SCREEN ── */
+.profile-avatar { width:72px; height:72px; border-radius:50%; background:linear-gradient(135deg,#4ade80,#60a5fa); display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 12px; }
+.profile-name { text-align:center; font-size:20px; font-weight:800; margin-bottom:4px; }
+.profile-sub { text-align:center; font-size:12px; color:var(--muted); margin-bottom:20px; }
+.setting-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+.setting-label { font-size:13px; font-weight:500; }
+.setting-val { font-size:12px; color:var(--muted); }
+.toggle { width:40px; height:22px; background:rgba(255,255,255,0.15); border-radius:11px; cursor:pointer; position:relative; transition:background .2s; }
+.toggle.on { background:var(--green); }
+.toggle::after { content:''; width:18px; height:18px; background:#fff; border-radius:50%; position:absolute; top:2px; left:2px; transition:left .2s; }
+.toggle.on::after { left:20px; }
+
+/* emoji picker row */
+.emoji-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.emoji-opt { font-size:24px; cursor:pointer; padding:4px; border-radius:8px; border:2px solid transparent; transition:border-color .2s; }
+.emoji-opt.selected { border-color:var(--green); background:rgba(74,222,128,0.1); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div class="screen active" id="screen-dashboard">
+  <div class="topbar">
+    <div>
+      <div class="topbar-date" id="db-date"></div>
+      <div class="topbar-day" id="db-day"></div>
+    </div>
+    <button class="focus-btn" id="focus-btn">FOCUS MODE</button>
+  </div>
+
+  <!-- Hero Goal -->
+  <div class="card hero-card" id="db-hero">
+    <div class="hero-emoji" id="db-emoji">🎧</div>
+    <div class="hero-label"><span>CURRENT OBJECTIVE</span><span id="db-goalnum">#01</span></div>
+    <div class="hero-title" id="db-goalname">Нет цели</div>
+    <div class="hero-sub" id="db-goalsub">Добавь первую цель →</div>
+    <div class="prog-label">PROGRESS</div>
+    <div class="prog-pct" id="db-pct">0%</div>
+    <div class="prog-amount" id="db-amount">0 / 0 ₽</div>
+    <div class="prog-bar"><div class="prog-fill" id="db-fill" style="width:0%"></div></div>
+    <div class="hero-meta">
+      <div class="meta-item">
+        <div class="meta-label">📅 TARGET DATE</div>
+        <div class="meta-val" id="db-date2">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">📈 DAILY TARGET</div>
+        <div class="meta-val" id="db-daily">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly + Stats -->
+  <div class="row">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div class="card-title">WEEKLY</div>
+        <div style="font-size:10px;color:var(--muted);">7 дней</div>
+      </div>
+      <div class="weekly-amount" id="db-weekly">+0 ₽</div>
+      <div class="weekly-change" id="db-wchange">нет данных</div>
+      <div class="chart-wrap">
+        <svg id="db-chart" viewBox="0 0 180 55" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.3)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0.95)"/>
+            </linearGradient>
+            <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.1)"/>
+              <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+            </linearGradient>
+          </defs>
+          <path id="chart-line" fill="none" stroke="url(#lg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path id="chart-fill" fill="url(#fg)"/>
+          <circle id="chart-dot" r="4" fill="white"/>
+        </svg>
+      </div>
+      <div class="day-labels">
+        <span class="day-label" id="dl0">Пн</span><span class="day-label" id="dl1">Вт</span>
+        <span class="day-label" id="dl2">Ср</span><span class="day-label" id="dl3">Чт</span>
+        <span class="day-label" id="dl4">Пт</span><span class="day-label" id="dl5">Сб</span>
+        <span class="day-label" id="dl6">Вс</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">STATS</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-icon">💳</div>
+          <div class="stat-lbl">ДОХОД</div>
+          <div class="stat-val" id="st-income">0 ₽</div>
+          <div class="stat-sub">всего</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-lbl">СТРИК</div>
+          <div class="stat-val" id="st-streak">0</div>
+          <div class="stat-sub">дней</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">✅</div>
+          <div class="stat-lbl">ПРИВЫЧКИ</div>
+          <div class="stat-val" id="st-habits">0/0</div>
+          <div class="stat-sub">сегодня</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-lbl">ЦЕЛЕЙ</div>
+          <div class="stat-val" id="st-goals">0</div>
+          <div class="stat-sub">активных</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Habits + Quote -->
+  <div class="row">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="card-title">ПРИВЫЧКИ</div>
+        <div style="font-size:10px;color:var(--muted);cursor:pointer;" onclick="goTo('habits')">Все →</div>
+      </div>
+      <div id="db-habits-list"></div>
+    </div>
+    <div class="card quote-card">
+      <div class="quote-fig" id="db-qfig">🧗</div>
+      <div class="quote-text" id="db-qtext">Дисциплина сегодня — свобода завтра.</div>
+      <div class="quote-sub">Строй своё будущее.</div>
+    </div>
+  </div>
+
+  <!-- Milestones -->
+  <div class="card" style="overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div class="card-title">СЛЕДУЮЩИЕ ЦЕЛИ</div>
+      <div style="font-size:10px;color:var(--muted);cursor:pointer;" onclick="goTo('goals')">Все →</div>
+    </div>
+    <div class="milestones-row" id="db-milestones"></div>
+  </div>
+</div>
+
+<!-- ══════════════ GOALS ══════════════ -->
+<div class="screen" id="screen-goals">
+  <div class="goals-header">
+    <h2>🎯 Цели</h2>
+    <button class="btn-add" onclick="openGoalModal()">+ Добавить</button>
+  </div>
+  <div id="goals-list"></div>
+</div>
+
+<!-- ══════════════ FINANCE ══════════════ -->
+<div class="screen" id="screen-finance">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    <h2 style="font-size:20px;font-weight:800;">💰 Финансы</h2>
+    <button class="btn-add" onclick="openTxModal()">+ Добавить</button>
+  </div>
+  <div class="finance-total" id="fin-total">0 ₽</div>
+  <div class="finance-sub" id="fin-sub">баланс</div>
+  <div class="category-tags" id="fin-tags">
+    <div class="tag active" data-cat="all" onclick="filterTx('all',this)">Все</div>
+    <div class="tag" data-cat="income" onclick="filterTx('income',this)">Доход</div>
+    <div class="tag" data-cat="expense" onclick="filterTx('expense',this)">Расход</div>
+    <div class="tag" data-cat="savings" onclick="filterTx('savings',this)">Накопления</div>
+  </div>
+  <div id="tx-list"></div>
+</div>
+
+<!-- ══════════════ HABITS ══════════════ -->
+<div class="screen" id="screen-habits">
+  <div class="goals-header">
+    <h2>✅ Привычки</h2>
+    <button class="btn-add" onclick="openHabitModal()">+ Добавить</button>
+  </div>
+  <div id="habits-list"></div>
+</div>
+
+<!-- ══════════════ PROFILE ══════════════ -->
+<div class="screen" id="screen-profile">
+  <div class="profile-avatar" id="prof-avatar">😎</div>
+  <div class="profile-name" id="prof-name">Пользователь</div>
+  <div class="profile-sub" id="prof-sub">Focus Dashboard</div>
+  <div class="card">
+    <div class="card-title">НАСТРОЙКИ</div>
+    <div class="setting-row">
+      <div class="setting-label">Уведомления</div>
+      <div class="toggle on" id="tog-notif" onclick="toggleSetting('notif',this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Звук при выполнении</div>
+      <div class="toggle" id="tog-sound" onclick="toggleSetting('sound',this)"></div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Ежедневный стрик</div>
+      <div class="setting-val" id="prof-streak">0 дней 🔥</div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">Всего сохранено</div>
+      <div class="setting-val" id="prof-saved">0 ₽</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0;">
+    <div class="card-title">МОТИВАЦИЯ</div>
+    <div id="motiv-list"></div>
+  </div>
+  <button class="btn-danger" style="width:100%;margin-top:12px;padding:14px;" onclick="confirmReset()">🗑 Сбросить данные</button>
+</div>
+
+<!-- ══════════════ BOTTOM NAV ══════════════ -->
+<nav class="bottom-nav">
+  <div class="nav-item active" onclick="goTo('dashboard')" id="nav-dashboard">
+    <div class="nav-icon">🏠</div>Dashboard
+  </div>
+  <div class="nav-item" onclick="goTo('goals')" id="nav-goals">
+    <div class="nav-icon">🎯</div>Цели
+  </div>
+  <div class="nav-item" onclick="goTo('finance')" id="nav-finance">
+    <div class="nav-icon">💰</div>Финансы
+  </div>
+  <div class="nav-item" onclick="goTo('habits')" id="nav-habits">
+    <div class="nav-icon">✅</div>Привычки
+  </div>
+  <div class="nav-item" onclick="goTo('profile')" id="nav-profile">
+    <div class="nav-icon">👤</div>Профиль
+  </div>
+</nav>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Goal Modal -->
+<div class="modal-overlay" id="modal-goal">
+  <div class="modal">
+    <h3 id="gm-title">Новая цель</h3>
+    <label>Название</label>
+    <input type="text" id="gm-name" placeholder="Например: AirPods Pro">
+    <label>Выбери эмодзи</label>
+    <div class="emoji-row" id="gm-emojis"></div>
+    <label>Сумма цели (₽)</label>
+    <input type="number" id="gm-target" placeholder="25000">
+    <label>Уже накоплено (₽)</label>
+    <input type="number" id="gm-current" placeholder="0">
+    <label>Дата дедлайна</label>
+    <input type="text" id="gm-deadline" placeholder="Июль 2026">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-goal')">Отмена</button>
+      <button class="btn-primary" onclick="saveGoal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Money Modal -->
+<div class="modal-overlay" id="modal-addmoney">
+  <div class="modal">
+    <h3>Пополнить цель</h3>
+    <label>Сумма (₽)</label>
+    <input type="number" id="am-amount" placeholder="500">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-addmoney')">Отмена</button>
+      <button class="btn-primary" onclick="addMoney()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transaction Modal -->
+<div class="modal-overlay" id="modal-tx">
+  <div class="modal">
+    <h3>Новая запись</h3>
+    <label>Тип</label>
+    <div class="category-tags" style="margin-bottom:0;">
+      <div class="tag active" data-type="income" onclick="selectTxType('income',this)">💚 Доход</div>
+      <div class="tag" data-type="expense" onclick="selectTxType('expense',this)">🔴 Расход</div>
+      <div class="tag" data-type="savings" onclick="selectTxType('savings',this)">💙 Накопления</div>
+    </div>
+    <label>Описание</label>
+    <input type="text" id="tx-desc" placeholder="Фриланс, кофе...">
+    <label>Сумма (₽)</label>
+    <input type="number" id="tx-amount" placeholder="1000">
+    <label>Эмодзи</label>
+    <div class="emoji-row" id="tx-emojis"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-tx')">Отмена</button>
+      <button class="btn-primary" onclick="saveTx()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Habit Modal -->
+<div class="modal-overlay" id="modal-habit">
+  <div class="modal">
+    <h3 id="hm-title">Новая привычка</h3>
+    <label>Название</label>
+    <input type="text" id="hm-name" placeholder="Тренировка, чтение...">
+    <label>Эмодзи</label>
+    <div class="emoji-row" id="hm-emojis"></div>
+    <label>Цель в день (раз)</label>
+    <input type="number" id="hm-goal" placeholder="1" min="1" max="20">
+    <label>Цвет</label>
+    <div style="display:flex;gap:10px;margin-top:8px;" id="hm-colors"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modal-habit')">Отмена</button>
+      <button class="btn-primary" onclick="saveHabit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════ TELEGRAM INIT ══════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0d1a26');
+  tg.setBackgroundColor('#0d1a26');
+}
+
+// ══════════════ STATE ══════════════
+let state = {
+  goals: [],
+  habits: [],
+  transactions: [],
+  streak: 0,
+  lastHabitDate: null,
+  settings: { notif: true, sound: false }
+};
+
+const QUOTES = [
+  { text: "Дисциплина сегодня — свобода завтра.", fig: "🧗" },
+  { text: "Маленькие шаги, большие перемены.", fig: "🚀" },
+  { text: "Каждый рубль приближает тебя к мечте.", fig: "💎" },
+  { text: "Действие лечит страх.", fig: "⚡" },
+  { text: "Победи себя — победишь всё.", fig: "🏆" },
+];
+
+const GOAL_EMOJIS = ["🎧","👟","💻","✈️","📱","🎮","🏠","🚗","📷","🎸","⌚","🏋️","📚","🌍","💍"];
+const HABIT_EMOJIS = ["💪","📖","🧘","🏃","🌐","🎯","✍️","🥗","💧","😴","🚫","🎵","🧠","💊","🛁"];
+const TX_EMOJIS    = ["💼","🎨","💻","🛒","🍕","🚕","💇","🎁","🎓","🏥","⚡","📦","🎭","🏖️","💰"];
+const COLORS       = ["#4ade80","#60a5fa","#a78bfa","#fb923c","#fbbf24","#f87171","#34d399","#e879f9"];
+
+let editGoalId = null, editHabitId = null, addMoneyGoalId = null;
+let selectedGoalEmoji = "🎯", selectedHabitEmoji = "💪", selectedTxEmoji = "💼";
+let selectedHabitColor = "#4ade80", selectedTxType = "income";
+
+// ══════════════ STORAGE ══════════════
+function save() {
+  localStorage.setItem('focus_state', JSON.stringify(state));
+}
+function load() {
+  const d = localStorage.getItem('focus_state');
+  if (d) state = { ...state, ...JSON.parse(d) };
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+// ══════════════ NAVIGATION ══════════════
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  document.getElementById('nav-' + screen).classList.add('active');
+  if (screen === 'dashboard') renderDashboard();
+  if (screen === 'goals') renderGoals();
+  if (screen === 'finance') renderFinance();
+  if (screen === 'habits') renderHabits();
+  if (screen === 'profile') renderProfile();
+}
+
+// ══════════════ DATE HELPERS ══════════════
+const DAYS_RU = ['ВОСКРЕСЕНЬЕ','ПОНЕДЕЛЬНИК','ВТОРНИК','СРЕДА','ЧЕТВЕРГ','ПЯТНИЦА','СУББОТА'];
+const MONTHS_RU = ['ЯНВАРЯ','ФЕВРАЛЯ','МАРТА','АПРЕЛЯ','МАЯ','ИЮНЯ','ИЮЛЯ','АВГУСТА','СЕНТЯБРЯ','ОКТЯБРЯ','НОЯБРЯ','ДЕКАБРЯ'];
+const SHORT_DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+// ══════════════ STREAK ══════════════
+function updateStreak() {
+  const today = todayKey();
+  const allDone = state.habits.length > 0 && state.habits.every(h => {
+    const prog = (h.progress || {})[today] || 0;
+    return prog >= h.goal;
+  });
+  if (allDone && state.lastHabitDate !== today) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const yKey = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate()}`;
+    state.streak = (state.lastHabitDate === yKey) ? (state.streak||0)+1 : 1;
+    state.lastHabitDate = today;
+    save();
+  }
+}
+
+// ══════════════ DASHBOARD ══════════════
+function renderDashboard() {
+  const now = new Date();
+  document.getElementById('db-date').textContent = `${now.getDate()} ${MONTHS_RU[now.getMonth()]}, ${now.getFullYear()}`;
+  document.getElementById('db-day').textContent = DAYS_RU[now.getDay()];
+
+  // Hero goal - first active
+  const activeGoals = state.goals.filter(g => g.current < g.target);
+  if (activeGoals.length > 0) {
+    const g = activeGoals[0];
+    const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+    document.getElementById('db-emoji').textContent = g.emoji || '🎯';
+    document.getElementById('db-goalnum').textContent = '#' + String(state.goals.indexOf(g)+1).padStart(2,'0');
+    document.getElementById('db-goalname').textContent = g.name;
+    document.getElementById('db-goalsub').textContent = g.desc || 'Продолжай накапливать!';
+    document.getElementById('db-pct').textContent = pct + '%';
+    document.getElementById('db-amount').textContent = `${fmt(g.current)} / ${fmt(g.target)} ₽`;
+    document.getElementById('db-fill').style.width = pct + '%';
+    document.getElementById('db-date2').textContent = g.deadline || '—';
+
+    // daily target
+    if (g.deadline) {
+      const remaining = g.target - g.current;
+      const daysLeft = 30; // simplified
+      document.getElementById('db-daily').textContent = `+${fmt(Math.ceil(remaining/daysLeft))} ₽/день`;
+    } else {
+      document.getElementById('db-daily').textContent = '—';
+    }
+  } else {
+    document.getElementById('db-emoji').textContent = '🎯';
+    document.getElementById('db-goalname').textContent = 'Нет активных целей';
+    document.getElementById('db-goalsub').textContent = 'Добавь первую цель →';
+    document.getElementById('db-pct').textContent = '0%';
+    document.getElementById('db-amount').textContent = '0 / 0 ₽';
+    document.getElementById('db-fill').style.width = '0%';
+    document.getElementById('db-date2').textContent = '—';
+    document.getElementById('db-daily').textContent = '—';
+  }
+
+  // Stats
+  const totalIncome = state.transactions.filter(t=>t.type==='income'||t.type==='savings').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('st-income').textContent = fmt(totalIncome) + ' ₽';
+  document.getElementById('st-streak').textContent = state.streak || 0;
+  const today = todayKey();
+  const doneToday = state.habits.filter(h => ((h.progress||{})[today]||0) >= h.goal).length;
+  document.getElementById('st-habits').textContent = `${doneToday}/${state.habits.length}`;
+  document.getElementById('st-goals').textContent = activeGoals.length;
+
+  // Weekly chart
+  const days = [];
+  for (let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const total = state.transactions.filter(t => {
+      const td = new Date(t.ts);
+      const tkey = `${td.getFullYear()}-${td.getMonth()}-${td.getDate()}`;
+      return tkey === key && (t.type==='income'||t.type==='savings');
+    }).reduce((s,t)=>s+t.amount,0);
+    days.push({ day: SHORT_DAYS[d.getDay()], val: total, isToday: i===0 });
+  }
+  const weekTotal = days.reduce((s,d)=>s+d.val,0);
+  document.getElementById('db-weekly').textContent = '+' + fmt(weekTotal) + ' ₽';
+  document.getElementById('db-wchange').textContent = weekTotal > 0 ? `↑ за последние 7 дней` : 'нет доходов за неделю';
+  // Draw chart
+  drawChart(days.map(d=>d.val));
+  for(let i=0;i<7;i++){
+    const el = document.getElementById('dl'+i);
+    el.textContent = days[i].day;
+    el.className = 'day-label' + (days[i].isToday?' active':'');
+  }
+
+  // Habits
+  const hList = document.getElementById('db-habits-list');
+  hList.innerHTML = '';
+  const showHabits = state.habits.slice(0,4);
+  if (showHabits.length === 0) {
+    hList.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:10px 0;">Нет привычек</div>';
+  } else {
+    showHabits.forEach(h => {
+      const prog = ((h.progress||{})[today]||0);
+      const pct = Math.min(100, Math.round((prog/h.goal)*100));
+      const done = prog >= h.goal;
+      const div = document.createElement('div');
+      div.className = 'habit-row';
+      div.innerHTML = `<div class="habit-icon">${h.emoji}</div>
+        <div class="habit-name">${h.name.slice(0,9)}</div>
+        <div class="habit-bar-wrap"><div class="habit-bar" style="width:${pct}%;background:${h.color};"></div></div>
+        <div class="habit-count">${prog}/${h.goal}</div>
+        <div class="habit-check" style="color:${done?'var(--green)':'var(--muted)'}">${done?'✓':'○'}</div>`;
+      div.onclick = () => { tapHabit(h.id); renderDashboard(); };
+      hList.appendChild(div);
+    });
+  }
+
+  // Quote
+  const q = QUOTES[new Date().getDay() % QUOTES.length];
+  document.getElementById('db-qtext').textContent = q.text;
+  document.getElementById('db-qfig').textContent = q.fig;
+
+  // Milestones
+  const ms = document.getElementById('db-milestones');
+  ms.innerHTML = '';
+  state.goals.forEach((g,i) => {
+    const pct = Math.min(100, Math.round((g.current/g.target)*100));
+    const isActive = g.current < g.target && i === state.goals.findIndex(x=>x.current<x.target);
+    const card = document.createElement('div');
+    card.className = 'milestone-card' + (isActive?' active':'');
+    card.innerHTML = `<div class="m-icon">${g.emoji||'🎯'}</div>
+      <div class="m-price">${fmt(g.target)} ₽</div>
+      <div class="m-pct">${pct}%</div>
+      <div class="m-name">${g.name.slice(0,10)}</div>`;
+    card.onclick = () => goTo('goals');
+    ms.appendChild(card);
+    if (i < state.goals.length-1) {
+      const sep = document.createElement('div');
+      sep.style.cssText='display:flex;align-items:center;color:rgba(255,255,255,0.15);font-size:14px;flex-shrink:0;';
+      sep.textContent='···';
+      ms.appendChild(sep);
+    }
+  });
+  if (state.goals.length === 0) {
+    ms.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;">Цели не добавлены</div>';
+  }
+
+  updateStreak();
+}
+
+function drawChart(vals) {
+  const max = Math.max(...vals, 1);
+  const W=180, H=55, n=vals.length;
+  const pts = vals.map((v,i) => ({ x: (i/(n-1))*W, y: H - (v/max)*(H-6) - 3 }));
+  const lineD = pts.map((p,i)=>(i===0?`M${p.x},${p.y}`:`L${p.x},${p.y}`)).join(' ');
+  const fillD = lineD + ` L${pts[pts.length-1].x},${H} L0,${H} Z`;
+  document.getElementById('chart-line').setAttribute('d', lineD);
+  document.getElementById('chart-fill').setAttribute('d', fillD);
+  const last = pts[pts.length-1];
+  document.getElementById('chart-dot').setAttribute('cx', last.x);
+  document.getElementById('chart-dot').setAttribute('cy', last.y);
+}
+
+// ══════════════ GOALS ══════════════
+function renderGoals() {
+  const el = document.getElementById('goals-list');
+  el.innerHTML = '';
+  if (state.goals.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px 0;font-size:14px;">Добавь первую цель 🎯</div>';
+    return;
+  }
+  state.goals.forEach(g => {
+    const pct = Math.min(100, Math.round((g.current/g.target)*100));
+    const done = g.current >= g.target;
+    const card = document.createElement('div');
+    card.className = 'card goal-card';
+    card.innerHTML = `
+      <div class="goal-header">
+        <div class="goal-info">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="goal-emoji">${g.emoji||'🎯'}</div>
+            <div>
+              <div class="goal-name">${g.name}</div>
+              <div class="goal-target">${fmt(g.current)} / ${fmt(g.target)} ₽  ${g.deadline?'• '+g.deadline:''}</div>
+            </div>
+          </div>
+        </div>
+        <div class="goal-pct-big" style="color:${done?'var(--green)':'var(--text)'}">${pct}%</div>
+      </div>
+      <div class="goal-prog-row">
+        <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="goal-actions">
+        ${!done ? `<button class="btn-sm" onclick="openAddMoney('${g.id}')">+ Пополнить</button>` : '<span style="color:var(--green);font-size:12px;font-weight:700;">✓ Достигнуто!</span>'}
+        <button class="btn-sm" onclick="openGoalModal('${g.id}')">✏️</button>
+        <button class="btn-danger" onclick="deleteGoal('${g.id}')">🗑</button>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+function openGoalModal(id) {
+  editGoalId = id || null;
+  selectedGoalEmoji = '🎯';
+  const g = id ? state.goals.find(x=>x.id===id) : null;
+  document.getElementById('gm-title').textContent = g ? 'Редактировать цель' : 'Новая цель';
+  document.getElementById('gm-name').value = g ? g.name : '';
+  document.getElementById('gm-target').value = g ? g.target : '';
+  document.getElementById('gm-current').value = g ? g.current : '';
+  document.getElementById('gm-deadline').value = g ? (g.deadline||'') : '';
+  if (g) selectedGoalEmoji = g.emoji || '🎯';
+
+  const row = document.getElementById('gm-emojis');
+  row.innerHTML = '';
+  GOAL_EMOJIS.forEach(e => {
+    const s = document.createElement('div');
+    s.className = 'emoji-opt' + (e===selectedGoalEmoji?' selected':'');
+    s.textContent = e;
+    s.onclick = () => { selectedGoalEmoji=e; row.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected')); s.classList.add('selected'); };
+    row.appendChild(s);
+  });
+  openModal('modal-goal');
+}
+
+function saveGoal() {
+  const name = document.getElementById('gm-name').value.trim();
+  const target = parseFloat(document.getElementById('gm-target').value) || 0;
+  const current = parseFloat(document.getElementById('gm-current').value) || 0;
+  const deadline = document.getElementById('gm-deadline').value.trim();
+  if (!name || !target) return shake('modal-goal');
+
+  if (editGoalId) {
+    const g = state.goals.find(x=>x.id===editGoalId);
+    if (g) { g.name=name; g.target=target; g.current=current; g.emoji=selectedGoalEmoji; g.deadline=deadline; }
+  } else {
+    state.goals.push({ id:uid(), name, target, current, emoji:selectedGoalEmoji, deadline, desc:'' });
+  }
+  save(); closeModal('modal-goal'); renderGoals();
+}
+
+function openAddMoney(id) {
+  addMoneyGoalId = id;
+  document.getElementById('am-amount').value = '';
+  openModal('modal-addmoney');
+}
+function addMoney() {
+  const amt = parseFloat(document.getElementById('am-amount').value) || 0;
+  if (!amt) return shake('modal-addmoney');
+  const g = state.goals.find(x=>x.id===addMoneyGoalId);
+  if (g) {
+    g.current = Math.min(g.target, g.current + amt);
+    // auto-add as savings transaction
+    state.transactions.unshift({ id:uid(), type:'savings', desc:'→ '+g.name, amount:amt, emoji:'💙', ts:Date.now() });
+  }
+  save(); closeModal('modal-addmoney'); renderGoals(); vibrate();
+}
+
+function deleteGoal(id) {
+  if (!confirm('Удалить цель?')) return;
+  state.goals = state.goals.filter(x=>x.id!==id);
+  save(); renderGoals();
+}
+
+// ══════════════ FINANCE ══════════════
+let txFilter = 'all';
+function renderFinance() {
+  const income = state.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const expense = state.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const savings = state.transactions.filter(t=>t.type==='savings').reduce((s,t)=>s+t.amount,0);
+  const bal = income - expense;
+  document.getElementById('fin-total').textContent = fmt(bal) + ' ₽';
+  document.getElementById('fin-sub').textContent = `доход ${fmt(income)} ₽ • расход ${fmt(expense)} ₽ • накопления ${fmt(savings)} ₽`;
+  renderTxList();
+}
+
+function renderTxList() {
+  const el = document.getElementById('tx-list');
+  const list = txFilter==='all' ? state.transactions : state.transactions.filter(t=>t.type===txFilter);
+  if (list.length===0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px 0;font-size:14px;">Нет записей 💳</div>';
+    return;
+  }
+  el.innerHTML = list.map(t => {
+    const d = new Date(t.ts);
+    const dateStr = `${d.getDate()} ${MONTHS_RU[d.getMonth()].toLowerCase().slice(0,3)}`;
+    const cls = t.type==='expense' ? 'expense' : 'income';
+    const sign = t.type==='expense' ? '-' : '+';
+    return `<div class="tx-item">
+      <div class="tx-left">
+        <div class="tx-icon">${t.emoji||'💰'}</div>
+        <div>
+          <div class="tx-name">${t.desc}</div>
+          <div class="tx-date">${dateStr} • ${t.type==='income'?'доход':t.type==='expense'?'расход':'накопления'}</div>
+        </div>
+      </div>
+      <div>
+        <div class="tx-amount ${cls}">${sign}${fmt(t.amount)} ₽</div>
+        <div style="text-align:right;margin-top:4px;"><span style="cursor:pointer;font-size:12px;color:var(--muted);" onclick="deleteTx('${t.id}')">✕</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterTx(cat, el) {
+  txFilter = cat;
+  document.querySelectorAll('#fin-tags .tag').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderTxList();
+}
+
+function openTxModal() {
+  selectedTxType = 'income';
+  selectedTxEmoji = '💼';
+  document.getElementById('tx-desc').value = '';
+  document.getElementById('tx-amount').value = '';
+  document.querySelectorAll('#modal-tx .tag').forEach((t,i)=>{ t.classList.toggle('active',i===0); });
+  const row = document.getElementById('tx-emojis');
+  row.innerHTML='';
+  TX_EMOJIS.forEach(e=>{
+    const s=document.createElement('div'); s.className='emoji-opt'+(e===selectedTxEmoji?' selected':''); s.textContent=e;
+    s.onclick=()=>{selectedTxEmoji=e;row.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected'));s.classList.add('selected');};
+    row.appendChild(s);
+  });
+  openModal('modal-tx');
+}
+
+function selectTxType(type, el) {
+  selectedTxType = type;
+  document.querySelectorAll('#modal-tx .tag').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function saveTx() {
+  const desc = document.getElementById('tx-desc').value.trim();
+  const amount = parseFloat(document.getElementById('tx-amount').value)||0;
+  if (!desc||!amount) return shake('modal-tx');
+  state.transactions.unshift({ id:uid(), type:selectedTxType, desc, amount, emoji:selectedTxEmoji, ts:Date.now() });
+  save(); closeModal('modal-tx'); renderFinance(); vibrate();
+}
+
+function deleteTx(id) {
+  state.transactions = state.transactions.filter(t=>t.id!==id);
+  save(); renderFinance();
+}
+
+// ══════════════ HABITS ══════════════
+function renderHabits() {
+  const el = document.getElementById('habits-list');
+  el.innerHTML = '';
+  const today = todayKey();
+  if (state.habits.length===0) {
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px 0;font-size:14px;">Добавь первую привычку ✅</div>';
+    return;
+  }
+  state.habits.forEach(h => {
+    const prog = ((h.progress||{})[today]||0);
+    const pct = Math.min(100, Math.round((prog/h.goal)*100));
+    const done = prog >= h.goal;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom='12px';
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div style="font-size:28px;">${h.emoji}</div>
+        <div style="flex:1;">
+          <div style="font-size:15px;font-weight:700;">${h.name}</div>
+          <div style="font-size:11px;color:var(--muted);">${prog} из ${h.goal} сегодня</div>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:${done?'var(--green)':'var(--text)'}">${pct}%</div>
+      </div>
+      <div class="prog-bar" style="margin-bottom:10px;"><div class="prog-fill" style="width:${pct}%;background:${h.color};"></div></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm" onclick="tapHabit('${h.id}');renderHabits();" style="flex:1;text-align:center;">+1 Выполнено</button>
+        <button class="btn-sm" onclick="openHabitModal('${h.id}')">✏️</button>
+        <button class="btn-danger" onclick="deleteHabit('${h.id}')">🗑</button>
+      </div>`;
+    el.appendChild(card);
+  });
+}
+
+function tapHabit(id) {
+  const today = todayKey();
+  const h = state.habits.find(x=>x.id===id);
+  if (!h) return;
+  if (!h.progress) h.progress = {};
+  const cur = h.progress[today]||0;
+  if (cur < h.goal) { h.progress[today]=cur+1; vibrate(); }
+  save(); updateStreak();
+}
+
+function openHabitModal(id) {
+  editHabitId = id||null;
+  selectedHabitEmoji='💪'; selectedHabitColor=COLORS[0];
+  const h = id ? state.habits.find(x=>x.id===id) : null;
+  document.getElementById('hm-title').textContent = h?'Редактировать':'Новая привычка';
+  document.getElementById('hm-name').value = h?h.name:'';
+  document.getElementById('hm-goal').value = h?h.goal:1;
+  if (h) { selectedHabitEmoji=h.emoji; selectedHabitColor=h.color; }
+
+  const er=document.getElementById('hm-emojis'); er.innerHTML='';
+  HABIT_EMOJIS.forEach(e=>{
+    const s=document.createElement('div'); s.className='emoji-opt'+(e===selectedHabitEmoji?' selected':''); s.textContent=e;
+    s.onclick=()=>{selectedHabitEmoji=e;er.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected'));s.classList.add('selected');};
+    er.appendChild(s);
+  });
+
+  const cr=document.getElementById('hm-colors'); cr.innerHTML='';
+  COLORS.forEach(c=>{
+    const s=document.createElement('div');
+    s.style.cssText=`width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${c===selectedHabitColor?'#fff':'transparent'};transition:border-color .2s;`;
+    s.onclick=()=>{selectedHabitColor=c;cr.querySelectorAll('div').forEach(x=>x.style.borderColor='transparent');s.style.borderColor='#fff';};
+    cr.appendChild(s);
+  });
+
+  openModal('modal-habit');
+}
+
+function saveHabit() {
+  const name=document.getElementById('hm-name').value.trim();
+  const goal=parseInt(document.getElementById('hm-goal').value)||1;
+  if (!name) return shake('modal-habit');
+  if (editHabitId) {
+    const h=state.habits.find(x=>x.id===editHabitId);
+    if(h){h.name=name;h.goal=goal;h.emoji=selectedHabitEmoji;h.color=selectedHabitColor;}
+  } else {
+    state.habits.push({id:uid(),name,goal,emoji:selectedHabitEmoji,color:selectedHabitColor,progress:{}});
+  }
+  save(); closeModal('modal-habit'); renderHabits(); vibrate();
+}
+
+function deleteHabit(id) {
+  if (!confirm('Удалить привычку?')) return;
+  state.habits=state.habits.filter(x=>x.id!==id);
+  save(); renderHabits();
+}
+
+// ══════════════ PROFILE ══════════════
+function renderProfile() {
+  const user = tg?.initDataUnsafe?.user;
+  if (user) {
+    document.getElementById('prof-name').textContent = user.first_name + (user.last_name?' '+user.last_name:'');
+    document.getElementById('prof-sub').textContent = '@'+(user.username||'user');
+    document.getElementById('prof-avatar').textContent = user.first_name?.[0]||'😎';
+  }
+  document.getElementById('prof-streak').textContent = (state.streak||0)+' дней 🔥';
+  const saved=state.transactions.filter(t=>t.type==='savings').reduce((s,t)=>s+t.amount,0);
+  document.getElementById('prof-saved').textContent = fmt(saved)+' ₽';
+
+  ['notif','sound'].forEach(k=>{
+    const el=document.getElementById('tog-'+k);
+    el.className='toggle'+(state.settings[k]?' on':'');
+  });
+
+  const motivEl=document.getElementById('motiv-list');
+  motivEl.innerHTML=QUOTES.map(q=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:22px;">${q.fig}</div>
+      <div style="font-size:12px;color:var(--muted);">${q.text}</div>
+    </div>`).join('');
+}
+
+function toggleSetting(key, el) {
+  state.settings[key]=!state.settings[key];
+  el.className='toggle'+(state.settings[key]?' on':'');
+  save();
+}
+
+function confirmReset() {
+  if (confirm('Удалить ВСЕ данные? Это нельзя отменить.')) {
+    localStorage.removeItem('focus_state');
+    state={goals:[],habits:[],transactions:[],streak:0,lastHabitDate:null,settings:{notif:true,sound:false}};
+    renderDashboard(); goTo('dashboard');
+  }
+}
+
+// ══════════════ MODAL HELPERS ══════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
+});
+
+function shake(id) {
+  const m=document.querySelector('#'+id+' .modal');
+  m.style.animation='none'; setTimeout(()=>{ m.style.animation='shake .3s ease'; },10);
+}
+
+// ══════════════ UTILS ══════════════
+function fmt(n) { return Math.round(n||0).toLocaleString('ru-RU'); }
+function vibrate() {
+  if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+  else if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// ══════════════ FOCUS MODE ══════════════
+document.getElementById('focus-btn').addEventListener('click', () => {
+  document.body.style.filter = document.body.style.filter ? '' : 'grayscale(0.3) brightness(0.9)';
+  vibrate();
+});
+
+// ══════════════ SHAKE ANIM ══════════════
+const style=document.createElement('style');
+style.textContent=`@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}`;
+document.head.appendChild(style);
+
+// ══════════════ BOOT ══════════════
+load();
+renderDashboard();
+</script>
+</body>
+</html>
